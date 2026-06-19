@@ -427,6 +427,7 @@ class JS::Compartment {
       JSTracer* trc, EdgeSelector whichEdges);
 
   void traceRoots(JSTracer* trc);
+  void finishRoots();
   void sweepRealms(JS::GCContext* gcx, bool keepAtleastOne,
                    bool destroyingRuntime);
   void sweepAfterMinorGC(JSTracer* trc);

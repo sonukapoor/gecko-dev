@@ -55,6 +55,12 @@ void Compartment::traceRoots(JSTracer* trc) {
   compositeStore.trace(trc);
 }
 
+void Compartment::finishRoots() {
+  // Clear the composite store before the final shutdown GC so that its
+  // HeapPtr entries are not visible as roots during the "no roots" check.
+  compositeStore.clear();
+}
+
 #ifdef JSGC_HASH_TABLE_CHECKS
 
 void Compartment::checkObjectWrappersAfterMovingGC() {
@@ -371,6 +377,9 @@ bool Compartment::wrap(JSContext* cx, MutableHandleObject obj) {
     if (!key) {
       return false;
     }
+    // Atoms are shared across zones; mark the atom as used in this zone so
+    // it is safe to store in a slot of an object in this compartment.
+    cx->markAtom(key);
 
     CompositeStore::AddPtr p = compositeStore.lookupForAdd(key);
     if (p) {
@@ -378,7 +387,10 @@ bool Compartment::wrap(JSContext* cx, MutableHandleObject obj) {
       return true;
     }
 
-    JS::RootedObject newComposite(cx, js::NewCompositeObject(cx, rawKey));
+    // Use the locally-atomized (and zone-marked) key for the new composite
+    // so the slot value belongs to this zone.
+    JS::RootedString localKey(cx, key);
+    JS::RootedObject newComposite(cx, js::NewCompositeObject(cx, localKey));
     if (!newComposite) {
       return false;
     }

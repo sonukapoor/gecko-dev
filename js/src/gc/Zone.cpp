@@ -966,6 +966,11 @@ void Zone::finishRoots() {
   for (RealmsInZoneIter r(this); !r.done(); r.next()) {
     r->finishRoots();
   }
+  // Clear per-compartment roots (e.g. CompositeStore) before the shutdown GC
+  // so they don't appear as roots during the "no roots" check.
+  for (CompartmentsInZoneIter comp(this); !comp.done(); comp.next()) {
+    comp->finishRoots();
+  }
 }
 
 void Zone::traceKeptObjects(JSTracer* trc) { keptObjects.ref().trace(trc); }
