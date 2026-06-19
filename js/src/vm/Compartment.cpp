@@ -368,12 +368,7 @@ bool Compartment::wrap(JSContext* cx, MutableHandleObject obj) {
   // wrapping them. The same logical composite key yields the same pointer
   // across compartment boundaries.
   if (js::IsCompositeObject(obj)) {
-    JS::RootedString rawKey(cx, js::GetCompositeKey(obj));
-    if (!rawKey) {
-      return false;
-    }
-
-    JSAtom* key = js::AtomizeString(cx, rawKey);
+    JS::Rooted<JSAtom*> key(cx, js::AtomizeString(cx, js::GetCompositeKey(obj)));
     if (!key) {
       return false;
     }
@@ -387,10 +382,7 @@ bool Compartment::wrap(JSContext* cx, MutableHandleObject obj) {
       return true;
     }
 
-    // Use the locally-atomized (and zone-marked) key for the new composite
-    // so the slot value belongs to this zone.
-    JS::RootedString localKey(cx, key);
-    JS::RootedObject newComposite(cx, js::NewCompositeObject(cx, localKey));
+    JS::RootedObject newComposite(cx, js::NewCompositeObject(cx, key));
     if (!newComposite) {
       return false;
     }

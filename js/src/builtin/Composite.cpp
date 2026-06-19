@@ -13,8 +13,6 @@
 
 using namespace js;
 
-static const uint32_t COMPOSITE_KEY_SLOT = 0;
-
 const JSClass js::CompositeClass = {
     "Composite",
     JSCLASS_HAS_RESERVED_SLOTS(1),
@@ -26,18 +24,16 @@ bool js::IsCompositeObject(JSObject* obj) {
 
 JSString* js::GetCompositeKey(JSObject* obj) {
   MOZ_ASSERT(IsCompositeObject(obj));
-  return obj->as<NativeObject>()
-      .getReservedSlot(COMPOSITE_KEY_SLOT)
-      .toString();
+  return obj->as<NativeObject>().getReservedSlot(0).toString();
 }
 
 JSObject* js::NewCompositeObject(JSContext* cx, JS::HandleString key) {
-  JS::RootedObject obj(cx, JS_NewObject(cx, &CompositeClass));
+  JS::RootedObject obj(cx,
+                       NewObjectWithGivenProto(cx, &CompositeClass, nullptr));
   if (!obj) {
     return nullptr;
   }
-  obj->as<NativeObject>().setReservedSlot(COMPOSITE_KEY_SLOT,
-                                          JS::StringValue(key));
+  obj->as<NativeObject>().setReservedSlot(0, JS::StringValue(key));
   return obj;
 }
 
@@ -67,8 +63,7 @@ bool js::IsCompositeShell(JSContext* cx, unsigned argc, JS::Value* vp) {
     return false;
   }
 
-  bool result =
-      args[0].isObject() && IsCompositeObject(&args[0].toObject());
-  args.rval().setBoolean(result);
+  args.rval().setBoolean(args[0].isObject() &&
+                         IsCompositeObject(&args[0].toObject()));
   return true;
 }

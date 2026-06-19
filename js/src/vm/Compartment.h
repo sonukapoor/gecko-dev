@@ -244,9 +244,8 @@ using StringWrapperMap =
     NurseryAwareHashMap<JSString*, JSString*, ZoneAllocPolicy,
                         DuplicatesPossible>;
 
-// Per-compartment store mapping composite key atoms to canonical
-// Composite objects. Used for re-interning when composites cross
-// compartment boundaries.
+// JSAtom* keys provide pointer-stable identity: two equal key strings
+// atomize to the same JSAtom*, which is what makes re-interning correct.
 using CompositeStore =
     JS::GCHashMap<js::HeapPtr<JSAtom*>, js::HeapPtr<JSObject*>,
                   js::StableCellHasher<js::HeapPtr<JSAtom*>>,

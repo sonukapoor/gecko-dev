@@ -1,8 +1,7 @@
 // Test: Composite objects are re-interned across compartment boundaries
 // rather than wrapped in a CrossCompartmentWrapper.
 
-// Create two separate compartments.
-const g1 = newGlobal({newCompartment: true});
+// Create a separate compartment to receive composites created in the shell.
 const g2 = newGlobal({newCompartment: true});
 
 // Create a Composite in the shell's compartment.

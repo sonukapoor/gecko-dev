@@ -13,18 +13,16 @@ namespace js {
 // Stores a single key string in reserved slot 0.
 extern const JSClass CompositeClass;
 
-// Returns true if obj was created with CompositeClass.
+// These helpers let Compartment::wrap() identify Composite objects and
+// extract their key without depending on a full Composite implementation.
+// In a real engine the key would be the sorted property list; here it is
+// a plain string for the POC.
 bool IsCompositeObject(JSObject* obj);
-
-// Returns the key string stored in slot 0. obj must be a Composite.
 JSString* GetCompositeKey(JSObject* obj);
-
-// Creates a new Composite in the current compartment with the given key.
 JSObject* NewCompositeObject(JSContext* cx, JS::HandleString key);
 
-// Shell-exposed functions.
-bool MakeComposite(JSContext* cx, unsigned argc, JS::Value* vp);
-bool IsCompositeShell(JSContext* cx, unsigned argc, JS::Value* vp);
+[[nodiscard]] bool MakeComposite(JSContext* cx, unsigned argc, JS::Value* vp);
+[[nodiscard]] bool IsCompositeShell(JSContext* cx, unsigned argc, JS::Value* vp);
 
 }  // namespace js
 
