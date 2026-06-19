@@ -44,7 +44,14 @@ Compartment::Compartment(Zone* zone, bool invisibleToDebugger)
       runtime_(zone->runtimeFromAnyThread()),
       invisibleToDebugger_(invisibleToDebugger),
       crossCompartmentObjectWrappers(zone, 0),
+      compositeStore(zone),
       realms_(zone) {}
+
+void Compartment::traceRoots(JSTracer* trc) {
+  // Trace the per-compartment composite store to keep canonical Composite
+  // objects alive across GC cycles.
+  compositeStore.trace(trc);
+}
 
 #ifdef JSGC_HASH_TABLE_CHECKS
 

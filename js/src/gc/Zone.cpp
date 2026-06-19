@@ -799,6 +799,11 @@ void Zone::traceRootsInMajorGC(JSTracer* trc) {
   if (FinalizationObservers* observers = finalizationObservers()) {
     observers->traceRoots(trc);
   }
+
+  // Trace per-compartment roots (e.g. compositeStore).
+  for (CompartmentsInZoneIter comp(this); !comp.done(); comp.next()) {
+    comp->traceRoots(trc);
+  }
 }
 
 void Zone::traceScriptTableRoots(JSTracer* trc) {

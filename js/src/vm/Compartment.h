@@ -13,6 +13,7 @@
 #include <stddef.h>
 #include <utility>
 
+#include "builtin/Composite.h"
 #include "gc/NurseryAwareHashMap.h"
 #include "gc/ZoneAllocator.h"
 #include "vm/Iteration.h"
@@ -243,6 +244,14 @@ using StringWrapperMap =
     NurseryAwareHashMap<JSString*, JSString*, ZoneAllocPolicy,
                         DuplicatesPossible>;
 
+// Per-compartment store mapping composite key atoms to canonical
+// Composite objects. Used for re-interning when composites cross
+// compartment boundaries.
+using CompositeStore =
+    JS::GCHashMap<js::HeapPtr<JSAtom*>, js::HeapPtr<JSObject*>,
+                  js::StableCellHasher<js::HeapPtr<JSAtom*>>,
+                  js::ZoneAllocPolicy>;
+
 }  // namespace js
 
 class JS::Compartment {
@@ -251,6 +260,8 @@ class JS::Compartment {
   bool invisibleToDebugger_;
 
   js::ObjectWrapperMap crossCompartmentObjectWrappers;
+
+  js::CompositeStore compositeStore;
 
   using RealmVector = js::Vector<JS::Realm*, 1, js::ZoneAllocPolicy>;
   RealmVector realms_;
@@ -415,6 +426,7 @@ class JS::Compartment {
   static void traceIncomingCrossCompartmentEdgesForZoneGC(
       JSTracer* trc, EdgeSelector whichEdges);
 
+  void traceRoots(JSTracer* trc);
   void sweepRealms(JS::GCContext* gcx, bool keepAtleastOne,
                    bool destroyingRuntime);
   void sweepAfterMinorGC(JSTracer* trc);
