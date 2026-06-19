@@ -12,6 +12,7 @@
 
 #include "jsfriendapi.h"
 
+#include "builtin/Composite.h"
 #include "debugger/DebugAPI.h"
 #include "gc/GC.h"
 #include "gc/Memory.h"
@@ -26,6 +27,7 @@
 #include "js/WrapperCallbacks.h"
 #include "proxy/DeadObjectProxy.h"
 #include "proxy/DOMProxy.h"
+#include "vm/JSAtomUtils.h"
 #include "vm/JSContext.h"
 #include "vm/WrapperObject.h"
 
@@ -353,6 +355,40 @@ bool Compartment::wrap(JSContext* cx, MutableHandleObject obj) {
   MOZ_ASSERT(cx->compartment() == this);
 
   if (!obj) {
+    return true;
+  }
+
+  // Re-intern Composite objects in the target compartment rather than
+  // wrapping them. The same logical composite key yields the same pointer
+  // across compartment boundaries.
+  if (js::IsCompositeObject(obj)) {
+    JS::RootedString rawKey(cx, js::GetCompositeKey(obj));
+    if (!rawKey) {
+      return false;
+    }
+
+    JSAtom* key = js::AtomizeString(cx, rawKey);
+    if (!key) {
+      return false;
+    }
+
+    CompositeStore::AddPtr p = compositeStore.lookupForAdd(key);
+    if (p) {
+      obj.set(p->value());
+      return true;
+    }
+
+    JS::RootedObject newComposite(cx, js::NewCompositeObject(cx, rawKey));
+    if (!newComposite) {
+      return false;
+    }
+
+    if (!compositeStore.add(p, key, newComposite)) {
+      ReportOutOfMemory(cx);
+      return false;
+    }
+
+    obj.set(newComposite);
     return true;
   }
 
