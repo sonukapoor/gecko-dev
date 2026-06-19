@@ -300,6 +300,7 @@ UNIFIED_SOURCES += [
     "builtin/AtomicsObject.cpp",
     "builtin/BigInt.cpp",
     "builtin/Boolean.cpp",
+    "builtin/Composite.cpp",
     "builtin/DataViewObject.cpp",
     "builtin/Eval.cpp",
     "builtin/FinalizationRegistryObject.cpp",

@@ -75,6 +75,7 @@
 #endif
 
 #include "builtin/Array.h"
+#include "builtin/Composite.h"
 #include "builtin/MapObject.h"
 #include "builtin/ModuleObject.h"
 #include "builtin/RegExp.h"
@@ -10390,6 +10391,14 @@ JS_FN_HELP("createUserArrayBuffer", CreateUserArrayBuffer, 1, 0,
   JS_FN_HELP("getUseCounterResults", GetUseCounterResults, 0, 0,
 "getUseCounterResults()",
 " Return the values of the shell use counters."),
+
+    JS_FN_HELP("makeComposite", js::MakeComposite, 1, 0,
+"makeComposite(key)",
+"  Create a Composite object with the given key string."),
+
+    JS_FN_HELP("isComposite", js::IsCompositeShell, 1, 0,
+"isComposite(obj)",
+"  Return true if obj is a Composite object."),
 
     JS_FS_HELP_END
 };
