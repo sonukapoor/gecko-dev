@@ -799,6 +799,11 @@ void Zone::traceRootsInMajorGC(JSTracer* trc) {
   if (FinalizationObservers* observers = finalizationObservers()) {
     observers->traceRoots(trc);
   }
+
+  // Trace per-compartment roots (e.g. compositeStore).
+  for (CompartmentsInZoneIter comp(this); !comp.done(); comp.next()) {
+    comp->traceRoots(trc);
+  }
 }
 
 void Zone::traceScriptTableRoots(JSTracer* trc) {
@@ -960,6 +965,11 @@ void Zone::clearRootsForShutdownGC() {
 void Zone::finishRoots() {
   for (RealmsInZoneIter r(this); !r.done(); r.next()) {
     r->finishRoots();
+  }
+  // Clear per-compartment roots (e.g. CompositeStore) before the shutdown GC
+  // so they don't appear as roots during the "no roots" check.
+  for (CompartmentsInZoneIter comp(this); !comp.done(); comp.next()) {
+    comp->finishRoots();
   }
 }
 

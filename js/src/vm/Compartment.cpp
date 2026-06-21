@@ -12,6 +12,7 @@
 
 #include "jsfriendapi.h"
 
+#include "builtin/Composite.h"
 #include "debugger/DebugAPI.h"
 #include "gc/GC.h"
 #include "gc/Memory.h"
@@ -26,6 +27,7 @@
 #include "js/WrapperCallbacks.h"
 #include "proxy/DeadObjectProxy.h"
 #include "proxy/DOMProxy.h"
+#include "vm/JSAtomUtils.h"
 #include "vm/JSContext.h"
 #include "vm/WrapperObject.h"
 
@@ -44,7 +46,20 @@ Compartment::Compartment(Zone* zone, bool invisibleToDebugger)
       runtime_(zone->runtimeFromAnyThread()),
       invisibleToDebugger_(invisibleToDebugger),
       crossCompartmentObjectWrappers(zone, 0),
+      compositeStore(zone),
       realms_(zone) {}
+
+void Compartment::traceRoots(JSTracer* trc) {
+  // Trace the per-compartment composite store to keep canonical Composite
+  // objects alive across GC cycles.
+  compositeStore.trace(trc);
+}
+
+void Compartment::finishRoots() {
+  // Clear the composite store before the final shutdown GC so that its
+  // HeapPtr entries are not visible as roots during the "no roots" check.
+  compositeStore.clear();
+}
 
 #ifdef JSGC_HASH_TABLE_CHECKS
 
@@ -346,6 +361,38 @@ bool Compartment::wrap(JSContext* cx, MutableHandleObject obj) {
   MOZ_ASSERT(cx->compartment() == this);
 
   if (!obj) {
+    return true;
+  }
+
+  // Re-intern Composite objects in the target compartment rather than
+  // wrapping them. The same logical composite key yields the same pointer
+  // across compartment boundaries.
+  if (js::IsCompositeObject(obj)) {
+    JS::Rooted<JSAtom*> key(cx, js::AtomizeString(cx, js::GetCompositeKey(obj)));
+    if (!key) {
+      return false;
+    }
+    // Atoms are shared across zones; mark the atom as used in this zone so
+    // it is safe to store in a slot of an object in this compartment.
+    cx->markAtom(key);
+
+    CompositeStore::AddPtr p = compositeStore.lookupForAdd(key);
+    if (p) {
+      obj.set(p->value());
+      return true;
+    }
+
+    JS::RootedObject newComposite(cx, js::NewCompositeObject(cx, key));
+    if (!newComposite) {
+      return false;
+    }
+
+    if (!compositeStore.add(p, key, newComposite)) {
+      ReportOutOfMemory(cx);
+      return false;
+    }
+
+    obj.set(newComposite);
     return true;
   }
 

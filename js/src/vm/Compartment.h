@@ -13,6 +13,7 @@
 #include <stddef.h>
 #include <utility>
 
+#include "builtin/Composite.h"
 #include "gc/NurseryAwareHashMap.h"
 #include "gc/ZoneAllocator.h"
 #include "vm/Iteration.h"
@@ -243,6 +244,13 @@ using StringWrapperMap =
     NurseryAwareHashMap<JSString*, JSString*, ZoneAllocPolicy,
                         DuplicatesPossible>;
 
+// JSAtom* keys provide pointer-stable identity: two equal key strings
+// atomize to the same JSAtom*, which is what makes re-interning correct.
+using CompositeStore =
+    JS::GCHashMap<js::HeapPtr<JSAtom*>, js::HeapPtr<JSObject*>,
+                  js::StableCellHasher<js::HeapPtr<JSAtom*>>,
+                  js::ZoneAllocPolicy>;
+
 }  // namespace js
 
 class JS::Compartment {
@@ -251,6 +259,8 @@ class JS::Compartment {
   bool invisibleToDebugger_;
 
   js::ObjectWrapperMap crossCompartmentObjectWrappers;
+
+  js::CompositeStore compositeStore;
 
   using RealmVector = js::Vector<JS::Realm*, 1, js::ZoneAllocPolicy>;
   RealmVector realms_;
@@ -415,6 +425,8 @@ class JS::Compartment {
   static void traceIncomingCrossCompartmentEdgesForZoneGC(
       JSTracer* trc, EdgeSelector whichEdges);
 
+  void traceRoots(JSTracer* trc);
+  void finishRoots();
   void sweepRealms(JS::GCContext* gcx, bool keepAtleastOne,
                    bool destroyingRuntime);
   void sweepAfterMinorGC(JSTracer* trc);
